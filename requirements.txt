@@ -1,0 +1,8 @@
+qiskit
+qiskit-nature
+openfermion
+openfermionpyscf
+braket
+matplotlib
+pyscf
+numpy
