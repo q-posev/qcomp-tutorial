@@ -29,7 +29,6 @@ def MoleculeSimulator(geometry, basis_set, multiplicity, charge, bond_length, oc
 def of_to_qiskit_op(qubit_operator):
     op = 0
     
-    terms = []
     for qubit_terms, qubit_coeff in qubit_operator.terms.items():
         string_term = "I"*count_qubits(qubit_operator)
         for i, (term_qubit, term_pauli) in enumerate(qubit_terms):
@@ -57,21 +56,9 @@ def UCCSD_excitations_generator(molecule):
     ccsd_single_amps = molecule.ccsd_single_amps
     ccsd_double_amps = molecule.ccsd_double_amps
 
-    #uccsd = uccsd_generator(ccsd_single_amps, ccsd_double_amps)
-
     singlet_amps = uccsd_singlet_get_packed_amplitudes(ccsd_single_amps, ccsd_double_amps, qubits, electrons)
     uccsd_singlet = uccsd_singlet_generator(singlet_amps, qubits, electrons)
 
     uccsd_jw = jordan_wigner(uccsd_singlet)
 
-    #uccsd_pauli_dict = {}
-    #uccsd_coeff_dict = {}
-
     return uccsd_jw
-
-# def H_exp(pauli_operator, circuit, quantum_instance, shots, expectations):
-
-#     H_e = 0.
-
-#     for term in pauli_operator:
-#         coeff = 

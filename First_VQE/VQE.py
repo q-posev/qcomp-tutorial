@@ -13,7 +13,7 @@ from openfermion.transforms import get_fermion_operator, jordan_wigner
 from openfermionpyscf import run_pyscf
 
 from useful_functions import MoleculeSimulator, expectation_value, UCCSD_excitations_generator
-from ansatze import HF_initial_state, UCCSD_ansatz, UCCSD_ansatz_bis
+from ansatze import HF_initial_state, UCCSD_ansatz, H2_UCCSD_ansatz_bis
 
 from excitations import single_excitation_bis, double_excitation_bis
 
@@ -41,7 +41,7 @@ def geometry(dist):
 basis_set = 'sto-3g'
 #Set the multiplicity
 multiplicity = 1
-#total charge<
+#total charge
 charge = 0
 # number of active electrons and orbitals to consider : for H2 as we're consider all electrons and orbitals as active for STO-3G
 occ_ind = act_ind = None
@@ -70,20 +70,14 @@ print(f"INFO: Simulating ground-state of H2 molecule for {len(mol_configs)} bond
 
 
 initial_state = HF_initial_state(qubits)
-
 a_theta = Parameter('a_theta')
-
-#ansatz = initial_state
-#ansatz.append(single_excitation_bis((0,2), a_theta), range(qubits))
-#ansatz.append(single_excitation_bis((1,3), a_theta), range(qubits))
-#ansatz.append(double_excitation_bis((0,1,2,3), (1/8)*a_theta), [0,1,2,3])
 
 for i in mol_configs:
     print(f"INFO: Computing ground-state energy for bond length {i} A...")
     mol_configs[i].append(np.inf)
     for theta in np.linspace(start=-np.pi, stop=np.pi, num=n_theta, endpoint=True):
         ansatz = UCCSD_ansatz(qubits, initial_state, mol_uccsd_exci[i], a_theta)
-        #ansatz = UCCSD_ansatz_bis(qubits, initial_state, (0,1,2,3), a_theta)
+        ansatz = H2_UCCSD_ansatz_bis(qubits, initial_state, (0,1,2,3), a_theta)
         bind_ansatz = ansatz.bind_parameters({a_theta: theta})
         exp_H_theta = expectation_value(mol_configs[i][1], bind_ansatz, backend, n_shots, AerPauliExpectation())
         if exp_H_theta < mol_configs[i][2]:
