@@ -1,0 +1,105 @@
+import numpy as np
+import time
+import os
+from matplotlib import pyplot as plt
+
+from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit_aer import Aer
+from qiskit.utils import QuantumInstance
+from qiskit.opflow.expectations import PauliExpectation, AerPauliExpectation
+
+from openfermion import MolecularData
+from openfermion.transforms import get_fermion_operator, jordan_wigner
+from openfermionpyscf import run_pyscf
+
+from useful_functions import MoleculeSimulator, expectation_value, UCCSD_excitations_generator
+from ansatze import HF_initial_state, UCCSD_ansatz, UCCSD_ansatz_bis
+
+from excitations import single_excitation_bis, double_excitation_bis
+
+# Initialize variable to determine total run-time of the program
+run_time = time.time()
+# Set parameters primordial for the simulations
+# bond lengths to simulate ground-state of H2 for (in Angstroms)
+bond_lengths = np.arange(start=0.24, stop=3.00, step=0.1)
+# no. of bond lengths to simulate H2 for
+n_configs = len(bond_lengths)
+print(f"INFO: Simulating ground-state of H2 molecule for {n_configs} bond lengths")
+# no. of VQE parameter values to scan
+n_theta = 24
+# no. of shots for measurements on quantum device
+n_shots = 2000
+
+simulator = Aer.get_backend('statevector_simulator')
+backend = QuantumInstance(backend = simulator)
+
+#Setting up the molecule informations
+def geometry(dist):
+    geometry = [('H', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, dist))]
+    return geometry
+#set the basis set used
+basis_set = 'sto-3g'
+#Set the multiplicity
+multiplicity = 1
+#total charge<
+charge = 0
+# number of active electrons and orbitals to consider : for H2 as we're consider all electrons and orbitals as active for STO-3G
+occ_ind = act_ind = None
+
+mol_s_q = {}
+mol_s_q_ops = {}
+mol_configs = {}
+mol_uccsd_exci = {}
+
+for dist in bond_lengths:
+    r = round(dist,2)
+    print(f"INFO: Simulating ground-state of H2 molecule for bond-length {r} A...")
+
+    geometry_fixed = geometry(r)
+
+    (molecule, molecular_hamiltonian, f_ops, qubit_hamiltonian) = MoleculeSimulator(geometry_fixed, basis_set, multiplicity, charge, r, occ_ind, act_ind)
+
+    mol_uccsd_exci[r] = [UCCSD_excitations_generator(molecule)]
+    mol_s_q[r] = [molecule, molecular_hamiltonian]
+    mol_s_q_ops[r] = [f_ops]
+    mol_configs[r] = [molecule, qubit_hamiltonian]
+
+    qubits = molecular_hamiltonian.n_qubits
+
+print(f"INFO: Simulating ground-state of H2 molecule for {len(mol_configs)} bond lengths")
+
+
+initial_state = HF_initial_state(qubits)
+
+a_theta = Parameter('a_theta')
+
+#ansatz = initial_state
+#ansatz.append(single_excitation_bis((0,2), a_theta), range(qubits))
+#ansatz.append(single_excitation_bis((1,3), a_theta), range(qubits))
+#ansatz.append(double_excitation_bis((0,1,2,3), (1/8)*a_theta), [0,1,2,3])
+
+for i in mol_configs:
+    print(f"INFO: Computing ground-state energy for bond length {i} A...")
+    mol_configs[i].append(np.inf)
+    for theta in np.linspace(start=-np.pi, stop=np.pi, num=n_theta, endpoint=True):
+        ansatz = UCCSD_ansatz(qubits, initial_state, mol_uccsd_exci[i], a_theta)
+        #ansatz = UCCSD_ansatz_bis(qubits, initial_state, (0,1,2,3), a_theta)
+        bind_ansatz = ansatz.bind_parameters({a_theta: theta})
+        exp_H_theta = expectation_value(mol_configs[i][1], bind_ansatz, backend, n_shots, AerPauliExpectation())
+        if exp_H_theta < mol_configs[i][2]:
+            mol_configs[i][2] = exp_H_theta
+    print(f"min {i} A ==> {mol_configs[i][2]:.4f} Ha")
+
+# Plot ground-state energy for each configuration vs bond length
+plt.figure(figsize=(8,6), dpi=700)
+plt.plot(list(mol_configs.keys()), [val[0].hf_energy for val in mol_configs.values()], label='HF')
+plt.plot(list(mol_configs.keys()), [val[0].fci_energy for val in mol_configs.values()], label='FCI')
+plt.plot(list(mol_configs.keys()), [val[2] for val in mol_configs.values()], 'x-', label='VQE_ansatz')
+plt.grid()
+plt.xlabel('Bond length of H2 [A]')
+plt.ylabel('Ground-state energy for H2 [Ha]')
+plt.legend()
+plt.title('VQE computed ground-state energy of H2 vs bond-length for STO-3G basis vs HF and FCI')
+plt.savefig('H2_PES_byVQE.png')
+run_time = time.time()-run_time
+print(f"Total running time : {run_time:.4f} s")
