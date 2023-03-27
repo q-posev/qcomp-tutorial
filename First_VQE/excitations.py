@@ -3,12 +3,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 
-def single_excitation(key, name_angle):
-
-    if name_angle is None:
-        theta = Parameter('theta')
-    else:
-        theta = Parameter(name_angle)
+def single_excitation(key, angle):
 
     num_qubits = key[1][0] - key[0][0] + 1
     length_key = len(key)
@@ -24,7 +19,7 @@ def single_excitation(key, name_angle):
     for i in reversed(range(key[0][0], key[1][0])):
         circuit.cnot(i+1, i)
 
-    circuit.rz(theta, 0)
+    circuit.rz(angle, 0)
 
     for i in range(key[0][0], key[1][0]):
         circuit.cnot(i+1, i)
@@ -38,11 +33,6 @@ def single_excitation(key, name_angle):
     return circuit
 
 def double_excitation(key, angle):
-
-    # if name_angle is None:
-    #     a_theta = Parameter('theta')
-    # else:
-    #     a_theta = Parameter(name_angle)
 
     num_qubits = key[3][0] - key[0][0] + 1
     length_key = len(key)
