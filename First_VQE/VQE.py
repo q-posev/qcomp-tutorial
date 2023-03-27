@@ -77,7 +77,7 @@ for i in mol_configs:
     mol_configs[i].append(np.inf)
     for theta in np.linspace(start=-np.pi, stop=np.pi, num=n_theta, endpoint=True):
         ansatz = UCCSD_ansatz(qubits, initial_state, mol_uccsd_exci[i], a_theta)
-        ansatz = H2_UCCSD_ansatz_bis(qubits, initial_state, (0,1,2,3), a_theta)
+        #ansatz = H2_UCCSD_ansatz_bis(qubits, initial_state, (0,1,2,3), a_theta)
         bind_ansatz = ansatz.bind_parameters({a_theta: theta})
         exp_H_theta = expectation_value(mol_configs[i][1], bind_ansatz, backend, n_shots, AerPauliExpectation())
         if exp_H_theta < mol_configs[i][2]:

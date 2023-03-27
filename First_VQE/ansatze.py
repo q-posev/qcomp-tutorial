@@ -37,8 +37,8 @@ def H2_UCCSD_ansatz_bis(qubits, initial_state, excitations, angle):
 
     circuit.append(initial_state, range(qubits))
 
-    circuit.append(single_excitation_bis((0,2), (1/2)*angle), [0,1,2])
-    circuit.append(single_excitation_bis((0,2), (1/2)*angle), [1,2,3])
+    circuit.append(single_excitation_bis((0,2), (1/2)*angle), range(qubits))
+    circuit.append(single_excitation_bis((1,3), (1/2)*angle), range(qubits))
     circuit.append(double_excitation_bis(excitations, (1/8)*angle), range(qubits))
 
     return circuit
