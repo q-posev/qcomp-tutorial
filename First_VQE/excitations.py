@@ -4,60 +4,60 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 
 def single_excitation(key, angle):
-
-    num_qubits = key[1][0] - key[0][0] + 1
+    
     length_key = len(key)
-
+    num_qubits = key[length_key-1][0] - key[0][0] + 1
+    
     circuit = QuantumCircuit(num_qubits)
 
     for i in range(length_key):
         if key[i][1] == 'X':
-            circuit.h(key[i][0])
+            circuit.h(key[i][0]-key[0][0])
         elif key[i][1] == 'Y':
-            circuit.rx(np.pi/2, key[i][0])
+            circuit.rx(np.pi/2, key[i][0] - key[0][0])
     
-    for i in reversed(range(key[0][0], key[1][0])):
-        circuit.cnot(i+1, i)
+    for i in reversed(range(1,length_key)):
+        circuit.cnot(key[i][0]-key[0][0], key[i-1][0]-key[0][0])
 
     circuit.rz(angle, 0)
 
-    for i in range(key[0][0], key[1][0]):
-        circuit.cnot(i+1, i)
+    for i in range(1, length_key):
+        circuit.cnot(key[i][0]-key[0][0], key[i-1][0] - key[0][0])
 
     for i in range(length_key):
         if key[i][1] == 'X':
-            circuit.h(key[i][0])
+            circuit.h(key[i][0]-key[0][0])
         elif key[i][1] == 'Y':
-            circuit.rx(-np.pi/2, key[i][0])
+            circuit.rx(np.pi/2, key[i][0] - key[0][0])
 
     return circuit
 
 def double_excitation(key, angle):
 
-    num_qubits = key[3][0] - key[0][0] + 1
     length_key = len(key)
+    num_qubits = key[length_key-1][0] - key[0][0] + 1
 
     circuit = QuantumCircuit(num_qubits)
 
     for i in range(length_key):
         if key[i][1] == 'X':
-            circuit.h(key[i][0])
+            circuit.h(key[i][0]-key[0][0])
         elif key[i][1] == 'Y':
-            circuit.rx(np.pi/2, key[i][0])
+            circuit.rx(np.pi/2, key[i][0] - key[0][0])
     
-    for i in reversed(range(key[0][0], key[3][0])):
-        circuit.cnot(i+1, i)
+    for i in reversed(range(1,length_key)):
+        circuit.cnot(key[i][0]-key[0][0], key[i-1][0]-key[0][0])
     
     circuit.rz(angle, 0)
 
-    for i in range(key[0][0], key[3][0]):
-        circuit.cnot(i+1, i)
-    
+    for i in range(1, length_key):
+        circuit.cnot(key[i][0]-key[0][0], key[i-1][0] - key[0][0])
+
     for i in range(length_key):
         if key[i][1] == 'X':
-            circuit.h(key[i][0])
+            circuit.h(key[i][0]-key[0][0])
         elif key[i][1] == 'Y':
-            circuit.rx(-np.pi/2, key[i][0])
+            circuit.rx(-np.pi/2, key[i][0] - key[0][0])
 
     return circuit
 

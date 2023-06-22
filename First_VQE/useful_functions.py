@@ -15,9 +15,13 @@ from openfermion.circuits import uccsd_singlet_generator, uccsd_singlet_get_pack
 
 def MoleculeSimulator(geometry, basis_set, multiplicity, charge, bond_length, occupied_indices, active_indices):
     molecule = MolecularData(geometry, basis_set, multiplicity, charge=charge, description='bondlength'+str(bond_length)+'A', filename=" ", data_directory= os.getcwd()+'/data')
+
     molecule = run_pyscf(molecule=molecule, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=True, run_fci=True, verbose=False)
 
+    n_electrons = molecule.n_electrons
+
     molecular_hamiltonian = molecule.get_molecular_hamiltonian(occupied_indices=occupied_indices, active_indices=active_indices)
+
     f_ops = get_fermion_operator(molecular_hamiltonian)
 
     jw_f_ops = jordan_wigner(f_ops)

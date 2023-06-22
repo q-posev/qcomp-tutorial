@@ -3,14 +3,10 @@ import time
 import os
 from matplotlib import pyplot as plt
 
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import Parameter
 from qiskit_aer import Aer
 from qiskit.utils import QuantumInstance
 from qiskit.opflow.expectations import PauliExpectation, AerPauliExpectation
-
-from openfermion import MolecularData
-from openfermion.transforms import get_fermion_operator, jordan_wigner
-from openfermionpyscf import run_pyscf
 
 from useful_functions import MoleculeSimulator, expectation_value, UCCSD_excitations_generator
 from ansatze import HF_initial_state, UCCSD_ansatz, H2_UCCSD_ansatz
@@ -19,7 +15,7 @@ from ansatze import HF_initial_state, UCCSD_ansatz, H2_UCCSD_ansatz
 run_time = time.time()
 # Set parameters primordial for the simulations
 # bond lengths to simulate ground-state of H2 for (in Angstroms)
-bond_lengths = np.arange(start=0.24, stop=3.00, step=0.1)
+bond_lengths = np.arange(start=0.24, stop=3.0, step=0.1)
 # no. of bond lengths to simulate H2 for
 n_configs = len(bond_lengths)
 print(f"INFO: Simulating ground-state of H2 molecule for {n_configs} bond lengths")
@@ -33,7 +29,7 @@ backend = QuantumInstance(backend = simulator)
 
 #Setting up the molecule informations
 def geometry(dist):
-    geometry = [('H', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, dist))]
+    geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, dist))]
     return geometry
 #set the basis set used
 basis_set = 'sto-3g'
@@ -51,7 +47,7 @@ mol_uccsd_exci = {}
 
 for dist in bond_lengths:
     r = round(dist,2)
-    print(f"INFO: Simulating ground-state of H2 molecule for bond-length {r} A...")
+    print(f"INFO: Simulating ground-state of LiH molecule for bond-length {r} A...")
 
     geometry_fixed = geometry(r)
 
@@ -63,14 +59,19 @@ for dist in bond_lengths:
     mol_configs[r] = [molecule, qubit_hamiltonian]
 
     qubits = molecular_hamiltonian.n_qubits
+    electrons = molecule.n_electrons
 
-print(f"INFO: Simulating ground-state of H2 molecule for {len(mol_configs)} bond lengths")
+print(f"INFO: Simulating ground-state of LiH molecule for {len(mol_configs)} bond lengths")
 
-
-initial_state = HF_initial_state(qubits)
+initial_state = HF_initial_state(qubits, electrons)
 a_theta = Parameter('a_theta')
 
+fci_energy = []
+for val in mol_configs.values():
+    fci_energy.append(val[0].fci_energy)
+
 for i in mol_configs:
+    int_fci = 0
     print(f"INFO: Computing ground-state energy for bond length {i} A...")
     mol_configs[i].append(np.inf)
     for theta in np.linspace(start=-np.pi, stop=np.pi, num=n_theta, endpoint=True):
@@ -79,18 +80,20 @@ for i in mol_configs:
         exp_H_theta = expectation_value(mol_configs[i][1], bind_ansatz, backend, n_shots, AerPauliExpectation())
         if exp_H_theta < mol_configs[i][2]:
             mol_configs[i][2] = exp_H_theta
-    print(f"min {i} A ==> {mol_configs[i][2]:.4f} Ha")
+    print(f"min {i} A ==> {mol_configs[i][2]:.8f} Ha")
+    print(f"min {i} A) ==> {mol_configs[i][0].fci_energy:.8f} Ha")
+    int_fci += 1
 
 # Plot ground-state energy for each configuration vs bond length
 plt.figure(figsize=(8,6), dpi=700)
-plt.plot(list(mol_configs.keys()), [val[0].hf_energy for val in mol_configs.values()], label='HF')
+#plt.plot(list(mol_configs.keys()), [val[0].hf_energy for val in mol_configs.values()], label='HF')
 plt.plot(list(mol_configs.keys()), [val[0].fci_energy for val in mol_configs.values()], label='FCI')
 plt.plot(list(mol_configs.keys()), [val[2] for val in mol_configs.values()], 'x-', label='VQE_ansatz')
 plt.grid()
-plt.xlabel('Bond length of H2 [A]')
-plt.ylabel('Ground-state energy for H2 [Ha]')
+plt.xlabel('Bond length of LiH [A]')
+plt.ylabel('Ground-state energy for LiH [Ha]')
 plt.legend()
-plt.title('VQE computed ground-state energy of H2 vs bond-length for STO-3G basis vs HF and FCI')
-plt.savefig('H2_PES_byVQE.png')
+plt.title('VQE computed ground-state energy of LiH vs bond-length for STO-3G basis vs HF and FCI')
+plt.savefig('LiH_PES_byVQE.png')
 run_time = time.time()-run_time
 print(f"Total running time : {run_time:.4f} s")

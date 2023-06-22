@@ -5,9 +5,10 @@ from qiskit.circuit import Parameter
 
 from excitations import *
 
-def HF_initial_state(qubits):
+def HF_initial_state(qubits, electrons):
     circuit = QuantumCircuit(qubits)
-    for i in range(qubits//2, qubits):
+
+    for i in range(qubits - electrons, qubits):
         circuit.x(i)
     
     return circuit  
@@ -20,15 +21,19 @@ def UCCSD_ansatz(qubits, initial_state, excitations, angle):
     for exci in excitations:
         for key, term in exci.terms.items():
             if (len(key) % 2) == 0:
-                if term <= 0:
-                    circuit.append(double_excitation(key, -(1/8)*angle), range(key[0][0], key[3][0]+1))
+                if np.sign(term) <= 0:
+                    circuit.append(double_excitation(key, -np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
+                    #circuit.append(double_excitation(key, -(1/8)*np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
                 else:
-                    circuit.append(double_excitation(key, (1/8)*angle), range(key[0][0], key[3][0]+1))
+                    circuit.append(double_excitation(key, np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
+                    #circuit.append(double_excitation(key, (1/8)*np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
             else:
-                if term <= 0:
-                    circuit.append(single_excitation(key, (1/2)*angle), range(key[0][0], key[1][1]+1))
+                if np.sign(term) <= 0:
+                    circuit.append(single_excitation(key, -np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
+                    #circuit.append(single_excitation(key, -(1/2)*np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
                 else:
-                    circuit.append(single_excitation(key, (1/2)*angle), range(key[0][0], key[1][1]+1))
+                    circuit.append(single_excitation(key, np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
+                    #circuit.append(single_excitation(key, (1/2)*np.absolute(term)*angle), range(key[0][0], key[len(key)-1][0]+1))
 
     return circuit
 
